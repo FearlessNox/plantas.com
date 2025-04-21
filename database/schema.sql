@@ -1,0 +1,46 @@
+CREATE DATABASE IF NOT EXISTS plantas_db;
+USE plantas_db;
+
+CREATE TABLE usuarios (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(100) NOT NULL,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    senha VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE plantas (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    usuario_id INT NOT NULL,
+    nome VARCHAR(100) NOT NULL,
+    especie VARCHAR(100),
+    data_aquisicao DATE,
+    observacoes TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+);
+
+CREATE TABLE cuidados (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    planta_id INT NOT NULL,
+    tipo_cuidado VARCHAR(50) NOT NULL,
+    frequencia VARCHAR(50) NOT NULL,
+    ultima_execucao DATETIME,
+    proxima_execucao DATETIME,
+    observacoes TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (planta_id) REFERENCES plantas(id)
+);
+
+CREATE TABLE lembretes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    cuidado_id INT NOT NULL,
+    data_lembrete DATETIME NOT NULL,
+    status ENUM('pendente', 'concluido', 'ignorado') DEFAULT 'pendente',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (cuidado_id) REFERENCES cuidados(id)
+); 

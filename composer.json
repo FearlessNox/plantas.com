@@ -1,0 +1,27 @@
+{
+    "name": "fearlessnox/plantas-api",
+    "description": "API para gerenciamento de plantas e seus cuidados",
+    "type": "project",
+    "require": {
+        "php": "^8.2",
+        "slim/slim": "^4.11",
+        "slim/psr7": "^1.6",
+        "php-di/php-di": "^7.0",
+        "doctrine/orm": "^2.16",
+        "symfony/dotenv": "^6.3",
+        "firebase/php-jwt": "^6.8",
+        "vlucas/phpdotenv": "^5.5"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "FearlessNox",
+            "role": "Developer"
+        }
+    ],
+    "minimum-stability": "stable"
+} 
