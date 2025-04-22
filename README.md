@@ -92,7 +92,9 @@ Este projeto está licenciado sob a licença MIT - veja o arquivo [LICENSE](LICE
 
 ## Autor
 
-Seu Nome - [seu-email@example.com](mailto:seu-email@example.com)
+FearlessNox - 
+
+VitorFigueiredoDev - [Vitorfigueiredo2005dev@gmail.com](Vitorfigueiredo2005dev@gmail.com)
 
 ## Agradecimentos
 
