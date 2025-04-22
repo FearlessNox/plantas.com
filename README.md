@@ -2,6 +2,11 @@
 
 O PlantCare é um sistema web desenvolvido em PHP para ajudar no gerenciamento de plantas domésticas, permitindo o registro e acompanhamento de cuidados com as plantas.
 
+## Autores
+
+- [FearlessNox](https://github.com/FearlessNox)
+- [VitorFigueiredoDev](https://github.com/VitorFigueiredoDev)
+
 ## Funcionalidades
 
 - Cadastro e gerenciamento de plantas
@@ -92,9 +97,9 @@ Este projeto está licenciado sob a licença MIT - veja o arquivo [LICENSE](LICE
 
 ## Autor
 
-FearlessNox - 
-
-VitorFigueiredoDev - [Vitorfigueiredo2005dev@gmail.com](Vitorfigueiredo2005dev@gmail.com)
+Desenvolvido por:
+- [FearlessNox](https://github.com/FearlessNox)
+- [VitorFigueiredoDev](https://github.com/VitorFigueiredoDev)
 
 ## Agradecimentos
 
