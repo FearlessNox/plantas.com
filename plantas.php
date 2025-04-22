@@ -3,12 +3,6 @@ require_once 'config/session.php';
 require_once 'config/database.php';
 require_once 'config/security.php';
 
-// Configurar sessão segura
-ini_set('session.cookie_httponly', 1);
-ini_set('session.cookie_secure', 1);
-ini_set('session.cookie_samesite', 'Strict');
-ini_set('session.use_strict_mode', 1);
-
 // Conexão com o banco usando PDO para maior segurança
 try {
     $dsn = "mysql:host=$db_host;dbname=$db_name;charset=utf8mb4";
