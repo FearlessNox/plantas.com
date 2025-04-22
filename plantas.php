@@ -86,11 +86,11 @@ $csrf_token = generate_csrf_token();
     <title>Plantas - PlantCare</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="assets/css/style.css">
-    <script src="https://unpkg.com/@dotlottie/player-component@2.7.12/dist/dotlottie-player.mjs" type="module"></script>
+    
     <style>
         .content-wrapper {
             display: flex;
-            align-items: flex-start;
+            align-items: center;
             justify-content: space-between;
             padding: 20px;
             gap: 20px;
@@ -102,6 +102,13 @@ $csrf_token = generate_csrf_token();
             display: flex;
             align-items: center;
             justify-content: center;
+            overflow: hidden;
+        }
+
+        .lottie-container iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
         }
         
         .table-container {
@@ -143,14 +150,10 @@ $csrf_token = generate_csrf_token();
             <div class="content-wrapper">
                 <!-- Lottie à esquerda -->
                 <div class="lottie-container">
-                    <dotlottie-player
-                        src="https://lottie.host/9375c7fb-8050-47e2-9d6b-92b4a1c218f9/wZ6fZjlQDf.lottie"
-                        background="transparent"
-                        speed="1"
-                        style="width: 300px; height: 300px"
-                        loop
-                        autoplay
-                    ></dotlottie-player>
+                    <iframe
+                        src="https://lottie.host/embed/9375c7fb-8050-47e2-9d6b-92b4a1c218f9/wZ6fZjlQDf.lottie"
+                        allowfullscreen>
+                    </iframe>
                 </div>
 
                 <!-- Tabela no centro -->
@@ -243,14 +246,10 @@ $csrf_token = generate_csrf_token();
 
                 <!-- Lottie à direita -->
                 <div class="lottie-container">
-                    <dotlottie-player
-                        src="https://lottie.host/9375c7fb-8050-47e2-9d6b-92b4a1c218f9/wZ6fZjlQDf.lottie"
-                        background="transparent"
-                        speed="1"
-                        style="width: 300px; height: 300px"
-                        loop
-                        autoplay
-                    ></dotlottie-player>
+                    <iframe
+                        src="https://lottie.host/embed/9375c7fb-8050-47e2-9d6b-92b4a1c218f9/wZ6fZjlQDf.lottie"
+                        allowfullscreen>
+                    </iframe>
                 </div>
             </div>
         </section>
@@ -264,6 +263,28 @@ $csrf_token = generate_csrf_token();
     </footer>
 
     <script src="assets/js/script.js"></script>
+    <script>
+        // Debug do Lottie
+        document.addEventListener('DOMContentLoaded', function() {
+            const containers = document.querySelectorAll('.lottie-container');
+            containers.forEach(container => {
+                console.log('Container Lottie encontrado:', container);
+                const player = container.querySelector('dotlottie-player');
+                if (player) {
+                    console.log('Player Lottie encontrado:', player);
+                    player.addEventListener('error', function(e) {
+                        console.error('Erro no Lottie:', e);
+                    });
+                    player.addEventListener('ready', function() {
+                        console.log('Lottie pronto para reproduzir');
+                    });
+                    player.addEventListener('load', function() {
+                        console.log('Lottie carregado com sucesso');
+                    });
+                }
+            });
+        });
+    </script>
 </body>
 </html> 
 <?php $conn->close(); ?> 
