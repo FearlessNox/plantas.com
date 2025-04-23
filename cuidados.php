@@ -1,5 +1,7 @@
 <?php
+require_once 'config/session.php';
 require_once 'config/database.php';
+require_once 'config/security.php';
 
 // Conexão com o banco
 $conn = new mysqli($db_host, $db_user, $db_pass, $db_name);
@@ -7,6 +9,9 @@ $conn = new mysqli($db_host, $db_user, $db_pass, $db_name);
 if ($conn->connect_error) {
     die("Erro na conexão: " . $conn->connect_error);
 }
+
+// Gerar token CSRF para o formulário
+$csrf_token = generate_csrf_token();
 
 // Processar formulário
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -170,7 +175,10 @@ $result = $conn->query($sql);
                                     <td><span class="status-badge normal"><?php echo $row['intervalo_dias']; ?> dias</span></td>
                                     <td>
                                         <div class="action-buttons">
-                                            <button class="btn-action btn-delete" data-id="<?php echo $row['id']; ?>" title="Excluir">
+                                            <button onclick="abrirModalEditar(<?php echo $row['id']; ?>)" class="btn-edit" title="Editar">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button onclick="excluirCuidado(<?php echo $row['id']; ?>)" class="btn-delete" title="Excluir">
                                                 <i class="fas fa-trash"></i>
                                             </button>
                                         </div>
@@ -193,6 +201,83 @@ $result = $conn->query($sql);
             <p>&copy; 2025 PlantCare - Sistema de Gerenciamento de Plantas Domésticas</p>
         </div>
     </footer>
+
+    <!-- Modal de Edição -->
+    <div id="modalEditar" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-calendar-edit"></i> Editar Cuidado</h3>
+                <button type="button" class="modal-close" onclick="fecharModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="formEditar" method="POST" class="form">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
+                    <input type="hidden" name="id" id="edit_id">
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="edit_usuario_id">Usuário:</label>
+                            <select id="edit_usuario_id" name="usuario_id" required>
+                                <?php 
+                                $result_usuarios->data_seek(0);
+                                while($usuario = $result_usuarios->fetch_assoc()): 
+                                ?>
+                                    <option value="<?php echo $usuario['id']; ?>">
+                                        <?php echo htmlspecialchars($usuario['nome']); ?>
+                                    </option>
+                                <?php endwhile; ?>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_planta_id">Planta:</label>
+                            <select id="edit_planta_id" name="planta_id" required>
+                                <?php 
+                                $result_plantas->data_seek(0);
+                                while($planta = $result_plantas->fetch_assoc()): 
+                                ?>
+                                    <option value="<?php echo $planta['id']; ?>" data-frequencia-rega="<?php echo $planta['frequencia_rega']; ?>">
+                                        <?php echo htmlspecialchars($planta['nome_popular']); ?>
+                                    </option>
+                                <?php endwhile; ?>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="edit_tipo_cuidado">Tipo de Cuidado:</label>
+                        <select id="edit_tipo_cuidado" name="tipo_cuidado">
+                            <option value="rega">Rega</option>
+                            <option value="poda">Poda</option>
+                            <option value="adubacao">Adubação</option>
+                            <option value="transplante">Transplante</option>
+                            <option value="controle_pragas">Controle de Pragas</option>
+                        </select>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="edit_data_cuidado">Data do Cuidado:</label>
+                            <input type="date" id="edit_data_cuidado" name="data_cuidado" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_intervalo_dias">Intervalo (dias):</label>
+                            <input type="number" id="edit_intervalo_dias" name="intervalo_dias" min="1" max="365" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="edit_observacoes">Observações:</label>
+                        <textarea id="edit_observacoes" name="observacoes" rows="3"></textarea>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Salvar</button>
+                        <button type="button" class="btn btn-secondary" onclick="fecharModal()"><i class="fas fa-times"></i> Cancelar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 
     <script src="assets/js/script.js"></script>
     <script>
@@ -245,6 +330,131 @@ $result = $conn->query($sql);
             intervaloInput.addEventListener('change', verificarIntervalo);
             intervaloInput.addEventListener('blur', verificarIntervalo);
         });
+    </script>
+
+    <script>
+    function mostrarNotificacao(mensagem, tipo = 'error') {
+        const notification = document.createElement('div');
+        notification.className = `notification ${tipo}`;
+        notification.innerHTML = `
+            <div class="notification-content">
+                <div class="notification-message">${mensagem}</div>
+                <button class="notification-close" onclick="this.parentElement.parentElement.remove()">&times;</button>
+            </div>
+        `;
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            notification.classList.add('closing');
+            setTimeout(() => notification.remove(), 300);
+        }, 5000);
+    }
+
+    function abrirModalEditar(id) {
+        fetch(`get_cuidado.php?id=${id}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(cuidado => {
+                if (cuidado.error) {
+                    throw new Error(cuidado.error);
+                }
+                
+                document.getElementById('edit_id').value = cuidado.id;
+                document.getElementById('edit_usuario_id').value = cuidado.usuario_id;
+                document.getElementById('edit_planta_id').value = cuidado.planta_id;
+                document.getElementById('edit_tipo_cuidado').value = cuidado.tipo_cuidado;
+                document.getElementById('edit_data_cuidado').value = cuidado.data_cuidado;
+                document.getElementById('edit_intervalo_dias').value = cuidado.intervalo_dias;
+                document.getElementById('edit_observacoes').value = cuidado.observacoes || '';
+                
+                document.getElementById('modalEditar').classList.add('active');
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                mostrarNotificacao('Erro ao carregar os dados do cuidado: ' + error.message);
+            });
+    }
+
+    function fecharModal() {
+        document.getElementById('modalEditar').classList.remove('active');
+    }
+
+    // Enviar formulário via AJAX
+    document.getElementById('formEditar').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        
+        fetch('atualizar_cuidado.php', {
+            method: 'POST',
+            body: formData,
+            credentials: 'same-origin'
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                mostrarNotificacao('Cuidado atualizado com sucesso!', 'success');
+                fecharModal();
+                setTimeout(() => window.location.reload(), 1000);
+            } else {
+                throw new Error(data.message || 'Erro ao atualizar cuidado');
+            }
+        })
+        .catch(error => {
+            console.error('Erro:', error);
+            mostrarNotificacao(error.message);
+        });
+    });
+
+    // Fechar modal ao clicar fora
+    document.getElementById('modalEditar').addEventListener('click', function(e) {
+        if (e.target === this) {
+            fecharModal();
+        }
+    });
+
+    // Fechar modal com ESC
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && document.getElementById('modalEditar').classList.contains('active')) {
+            fecharModal();
+        }
+    });
+
+    // Função para excluir cuidado
+    function excluirCuidado(id) {
+        if (confirm('Tem certeza que deseja excluir este cuidado?')) {
+            fetch('excluir_cuidado.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `id=${id}&csrf_token=${document.querySelector('input[name="csrf_token"]').value}`,
+                credentials: 'same-origin'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    mostrarNotificacao('Cuidado excluído com sucesso!', 'success');
+                    setTimeout(() => window.location.reload(), 1000);
+                } else {
+                    throw new Error(data.message || 'Erro ao excluir cuidado');
+                }
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                mostrarNotificacao(error.message);
+            });
+        }
+    }
     </script>
 </body>
 </html>

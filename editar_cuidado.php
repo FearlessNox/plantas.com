@@ -11,11 +11,7 @@ if ($conn->connect_error) {
 $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 
 // Buscar dados do cuidado
-$sql = "SELECT c.*, u.nome as usuario_nome, p.nome_popular as planta_nome 
-        FROM cuidados c 
-        JOIN usuarios u ON c.usuario_id = u.id 
-        JOIN plantas p ON c.planta_id = p.id
-        WHERE c.id = ?";
+$sql = "SELECT * FROM cuidados WHERE id = ?";
 $stmt = $conn->prepare($sql);
 $stmt->bind_param("i", $id);
 $stmt->execute();
@@ -32,7 +28,7 @@ $cuidado = $result->fetch_assoc();
 $sql_usuarios = "SELECT id, nome FROM usuarios";
 $result_usuarios = $conn->query($sql_usuarios);
 
-$sql_plantas = "SELECT id, nome_popular FROM plantas";
+$sql_plantas = "SELECT id, nome_popular, frequencia_rega FROM plantas";
 $result_plantas = $conn->query($sql_plantas);
 
 // Processar formulário
@@ -41,7 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $planta_id = $_POST['planta_id'];
     $tipo_cuidado = $_POST['tipo_cuidado'];
     $data_cuidado = $_POST['data_cuidado'];
-    $frequencia = $_POST['frequencia'];
+    $intervalo_dias = $_POST['intervalo_dias'];
     $observacoes = $_POST['observacoes'];
 
     $sql = "UPDATE cuidados SET 
@@ -49,7 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             planta_id = ?,
             tipo_cuidado = ?,
             data_cuidado = ?,
-            frequencia = ?,
+            intervalo_dias = ?,
             observacoes = ?
             WHERE id = ?";
     
@@ -59,7 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $planta_id,
         $tipo_cuidado,
         $data_cuidado,
-        $frequencia,
+        $intervalo_dias,
         $observacoes,
         $id
     );
@@ -100,7 +96,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <main class="container">
         <section id="editar-cuidado">
             <div class="section-header">
-                <h2><i class="fas fa-calendar-check"></i> Editar Cuidado</h2>
+                <h2><i class="fas fa-edit"></i> Editar Cuidado</h2>
                 <a href="cuidados.php" class="btn-back"><i class="fas fa-arrow-left"></i> Voltar</a>
             </div>
             
@@ -112,7 +108,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <select id="usuario_id" name="usuario_id" required>
                                 <option value="">Selecione um usuário</option>
                                 <?php while($row = $result_usuarios->fetch_assoc()): ?>
-                                    <option value="<?php echo $row['id']; ?>" <?php echo $cuidado['usuario_id'] == $row['id'] ? 'selected' : ''; ?>>
+                                    <option value="<?php echo $row['id']; ?>" <?php echo $row['id'] == $cuidado['usuario_id'] ? 'selected' : ''; ?>>
                                         <?php echo htmlspecialchars($row['nome']); ?>
                                     </option>
                                 <?php endwhile; ?>
@@ -123,7 +119,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <select id="planta_id" name="planta_id" required>
                                 <option value="">Selecione uma planta</option>
                                 <?php while($row = $result_plantas->fetch_assoc()): ?>
-                                    <option value="<?php echo $row['id']; ?>" <?php echo $cuidado['planta_id'] == $row['id'] ? 'selected' : ''; ?>>
+                                    <option value="<?php echo $row['id']; ?>" 
+                                            data-frequencia-rega="<?php echo $row['frequencia_rega']; ?>"
+                                            <?php echo $row['id'] == $cuidado['planta_id'] ? 'selected' : ''; ?>>
                                         <?php echo htmlspecialchars($row['nome_popular']); ?>
                                     </option>
                                 <?php endwhile; ?>
@@ -146,8 +144,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <input type="date" id="data_cuidado" name="data_cuidado" value="<?php echo $cuidado['data_cuidado']; ?>" required>
                         </div>
                         <div class="form-group">
-                            <label for="frequencia">Frequência (dias):</label>
-                            <input type="number" id="frequencia" name="frequencia" min="1" max="365" value="<?php echo $cuidado['frequencia']; ?>">
+                            <label for="intervalo_dias">Intervalo (dias):</label>
+                            <input type="number" id="intervalo_dias" name="intervalo_dias" min="1" max="365" value="<?php echo $cuidado['intervalo_dias']; ?>">
                         </div>
                     </div>
                     <div class="form-group">
@@ -156,7 +154,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
                     <div class="form-actions">
                         <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Salvar</button>
-                        <a href="/plantas.com/cuidados.php" class="btn btn-secondary"><i class="fas fa-times"></i> Cancelar</a>
+                        <a href="cuidados.php" class="btn btn-secondary"><i class="fas fa-times"></i> Cancelar</a>
                     </div>
                 </form>
             </div>

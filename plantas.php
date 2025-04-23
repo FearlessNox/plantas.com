@@ -207,8 +207,8 @@ $csrf_token = generate_csrf_token();
                             <thead>
                                 <tr>
                                     <th>ID</th>
-                                    <th>Nome Científico</th>
                                     <th>Nome Popular</th>
+                                    <th>Nome Científico</th>
                                     <th>Tipo</th>
                                     <th>Luz</th>
                                     <th>Rega (dias)</th>
@@ -219,18 +219,19 @@ $csrf_token = generate_csrf_token();
                                 <?php if (count($result) > 0): ?>
                                     <?php foreach ($result as $row): ?>
                                         <tr>
-                                            <td><?php echo $row['id']; ?></td>
-                                            <td><?php echo htmlspecialchars($row['nome_cientifico']); ?></td>
-                                            <td><?php echo htmlspecialchars($row['nome_popular'] ?? ''); ?></td>
-                                            <td><?php echo htmlspecialchars($row['tipo_planta'] ?? ''); ?></td>
-                                            <td><?php echo htmlspecialchars($row['nivel_luz'] ?? ''); ?></td>
-                                            <td><?php echo $row['frequencia_rega'] ?? ''; ?></td>
-                                            <td>
-                                                <div class="action-buttons">
-                                                    <button class="btn-action btn-delete" data-id="<?php echo $row['id']; ?>" title="Excluir">
-                                                        <i class="fas fa-trash"></i>
-                                                    </button>
-                                                </div>
+                                            <td><?php echo htmlspecialchars($row['id']); ?></td>
+                                            <td><?php echo htmlspecialchars($row['nome_popular']); ?></td>
+                                            <td><em><?php echo htmlspecialchars($row['nome_cientifico']); ?></em></td>
+                                            <td><?php echo ucfirst(htmlspecialchars($row['tipo_planta'])); ?></td>
+                                            <td><?php echo ucfirst(htmlspecialchars($row['nivel_luz'])); ?></td>
+                                            <td><?php echo htmlspecialchars($row['frequencia_rega']); ?></td>
+                                            <td class="actions">
+                                                <button onclick="abrirModalEditar(<?php echo $row['id']; ?>)" class="btn-edit" title="Editar">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <button onclick="excluirPlanta(<?php echo $row['id']; ?>)" class="btn-delete" title="Excluir">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
                                             </td>
                                         </tr>
                                     <?php endforeach; ?>
@@ -284,6 +285,189 @@ $csrf_token = generate_csrf_token();
                 }
             });
         });
+    </script>
+
+    <!-- Modal de Edição -->
+    <div id="modalEditar" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-edit"></i> Editar Planta</h3>
+                <button type="button" class="modal-close" onclick="fecharModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="formEditar" method="POST" class="form">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(generate_csrf_token()); ?>">
+                    <input type="hidden" name="id" id="edit_id">
+                    
+                    <div class="form-group">
+                        <label for="edit_nome_cientifico">Nome Científico:</label>
+                        <input type="text" id="edit_nome_cientifico" name="nome_cientifico" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="edit_nome_popular">Nome Popular:</label>
+                        <input type="text" id="edit_nome_popular" name="nome_popular" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="edit_tipo_planta">Tipo de Planta:</label>
+                        <select id="edit_tipo_planta" name="tipo_planta">
+                            <option value="interior">Planta de Interior</option>
+                            <option value="exterior">Planta de Exterior</option>
+                            <option value="suculenta">Suculenta</option>
+                            <option value="frutifera">Frutífera</option>
+                            <option value="hortalica">Hortaliça</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="edit_nivel_luz">Necessidade de Luz:</label>
+                        <select id="edit_nivel_luz" name="nivel_luz">
+                            <option value="baixa">Baixa</option>
+                            <option value="media">Média</option>
+                            <option value="alta">Alta</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="edit_frequencia_rega">Frequência de Rega (dias):</label>
+                        <input type="number" id="edit_frequencia_rega" name="frequencia_rega" min="1" max="30">
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Salvar</button>
+                        <button type="button" class="btn btn-secondary" onclick="fecharModal()"><i class="fas fa-times"></i> Cancelar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    function mostrarNotificacao(mensagem, tipo = 'error') {
+        const notification = document.createElement('div');
+        notification.className = `notification ${tipo}`;
+        notification.innerHTML = `
+            <div class="notification-content">
+                <div class="notification-message">${mensagem}</div>
+                <button class="notification-close" onclick="this.parentElement.parentElement.remove()">&times;</button>
+            </div>
+        `;
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            notification.classList.add('closing');
+            setTimeout(() => notification.remove(), 300);
+        }, 5000);
+    }
+
+    function abrirModalEditar(id) {
+        // Buscar dados da planta via AJAX
+        fetch(`get_planta.php?id=${id}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(planta => {
+                if (planta.error) {
+                    throw new Error(planta.error);
+                }
+                
+                // Preencher o formulário com os dados
+                document.getElementById('edit_id').value = planta.id;
+                document.getElementById('edit_nome_cientifico').value = planta.nome_cientifico;
+                document.getElementById('edit_nome_popular').value = planta.nome_popular;
+                document.getElementById('edit_tipo_planta').value = planta.tipo_planta;
+                document.getElementById('edit_nivel_luz').value = planta.nivel_luz;
+                document.getElementById('edit_frequencia_rega').value = planta.frequencia_rega;
+                
+                // Mostrar o modal
+                document.getElementById('modalEditar').classList.add('active');
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                mostrarNotificacao('Erro ao carregar os dados da planta: ' + error.message);
+            });
+    }
+
+    function fecharModal() {
+        document.getElementById('modalEditar').classList.remove('active');
+    }
+
+    // Enviar formulário via AJAX
+    document.getElementById('formEditar').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        
+        fetch('atualizar_planta.php', {
+            method: 'POST',
+            body: formData,
+            credentials: 'same-origin' // Importante para enviar cookies de sessão
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                mostrarNotificacao('Planta atualizada com sucesso!', 'success');
+                fecharModal();
+                setTimeout(() => window.location.reload(), 1000);
+            } else {
+                throw new Error(data.message || 'Erro ao atualizar planta');
+            }
+        })
+        .catch(error => {
+            console.error('Erro:', error);
+            mostrarNotificacao(error.message);
+        });
+    });
+
+    // Fechar modal ao clicar fora dele
+    document.getElementById('modalEditar').addEventListener('click', function(e) {
+        if (e.target === this) {
+            fecharModal();
+        }
+    });
+
+    // Fechar modal com tecla ESC
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && document.getElementById('modalEditar').classList.contains('active')) {
+            fecharModal();
+        }
+    });
+
+    // Função para excluir planta
+    function excluirPlanta(id) {
+        if (confirm('Tem certeza que deseja excluir esta planta?')) {
+            fetch('excluir_planta.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `id=${id}&csrf_token=${document.querySelector('input[name="csrf_token"]').value}`,
+                credentials: 'same-origin'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    mostrarNotificacao('Planta excluída com sucesso!', 'success');
+                    setTimeout(() => window.location.reload(), 1000);
+                } else {
+                    throw new Error(data.message || 'Erro ao excluir planta');
+                }
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                mostrarNotificacao(error.message);
+            });
+        }
+    }
     </script>
 </body>
 </html> 

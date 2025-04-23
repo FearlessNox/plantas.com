@@ -1,57 +1,80 @@
 <?php
 require_once 'config/database.php';
+require_once 'config/security.php';
 
-// Conexão com o banco
-$conn = new mysqli($db_host, $db_user, $db_pass, $db_name);
-
-if ($conn->connect_error) {
-    die("Erro na conexão: " . $conn->connect_error);
+// Conexão com o banco usando PDO para maior segurança
+try {
+    $dsn = "mysql:host=$db_host;dbname=$db_name;charset=utf8mb4";
+    $options = [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        PDO::ATTR_EMULATE_PREPARES => false,
+    ];
+    $pdo = new PDO($dsn, $db_user, $db_pass, $options);
+} catch (PDOException $e) {
+    die("Erro na conexão: " . htmlspecialchars($e->getMessage()));
 }
 
 $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 
 // Buscar dados do usuário
-$sql = "SELECT * FROM usuarios WHERE id = ?";
-$stmt = $conn->prepare($sql);
-$stmt->bind_param("i", $id);
-$stmt->execute();
-$result = $stmt->get_result();
+try {
+    $sql = "SELECT * FROM usuarios WHERE id = ?";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([$id]);
+    $usuario = $stmt->fetch();
 
-if ($result->num_rows === 0) {
-    header("Location: usuarios.php");
-    exit();
+    if (!$usuario) {
+        header("Location: usuarios.php");
+        exit();
+    }
+} catch (PDOException $e) {
+    die("Erro ao buscar usuário: " . htmlspecialchars($e->getMessage()));
 }
-
-$usuario = $result->fetch_assoc();
 
 // Processar formulário
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $nome = $_POST['nome'];
-    $email = $_POST['email'];
-    $telefone = $_POST['telefone'];
-    $nivel_experiencia = $_POST['nivel_experiencia'];
+    // Validar token CSRF
+    if (!isset($_POST['csrf_token']) || !validate_csrf_token($_POST['csrf_token'])) {
+        die('Token CSRF inválido');
+    }
 
-    $sql = "UPDATE usuarios SET 
-            nome = ?,
-            email = ?,
-            telefone = ?,
-            nivel_experiencia = ?
-            WHERE id = ?";
-    
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param("ssssi", 
-        $nome,
-        $email,
-        $telefone,
-        $nivel_experiencia,
-        $id
-    );
-    
-    if ($stmt->execute()) {
+    // Sanitizar e validar entradas
+    $nome = sanitize_input($_POST['nome']);
+    $email = filter_var($_POST['email'], FILTER_SANITIZE_EMAIL);
+    $telefone = sanitize_input($_POST['telefone']);
+    $nivel_experiencia = sanitize_input($_POST['nivel_experiencia']);
+
+    // Validar email
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        die('Email inválido');
+    }
+
+    // Validar nível de experiência
+    $niveis_permitidos = ['iniciante', 'intermediario', 'avancado'];
+    if (!in_array($nivel_experiencia, $niveis_permitidos)) {
+        die('Nível de experiência inválido');
+    }
+
+    try {
+        $sql = "UPDATE usuarios SET 
+                nome = ?,
+                email = ?,
+                telefone = ?,
+                nivel_experiencia = ?
+                WHERE id = ?";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([$nome, $email, $telefone, $nivel_experiencia, $id]);
+        
         header("Location: usuarios.php?success=1");
         exit();
+    } catch (PDOException $e) {
+        die("Erro ao atualizar: " . htmlspecialchars($e->getMessage()));
     }
 }
+
+// Gerar novo token CSRF para o formulário
+$csrf_token = generate_csrf_token();
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -83,12 +106,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <main class="container">
         <section id="editar-usuario">
             <div class="section-header">
-                <h2><i class="fas fa-users"></i> Editar Usuário</h2>
+                <h2><i class="fas fa-user-edit"></i> Editar Usuário</h2>
                 <a href="usuarios.php" class="btn-back"><i class="fas fa-arrow-left"></i> Voltar</a>
             </div>
             
-            <div class="card-form">
+            <div class="card-form visible">
+                <div class="card-header">
+                    <h3>Editar Usuário</h3>
+                </div>
                 <form method="POST" action="editar_usuario.php?id=<?php echo $id; ?>">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
                     <div class="form-group">
                         <label for="nome">Nome Completo:</label>
                         <input type="text" id="nome" name="nome" value="<?php echo htmlspecialchars($usuario['nome']); ?>" required>
@@ -111,7 +138,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
                     <div class="form-actions">
                         <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Salvar</button>
-                        <a href="/plantas.com/usuarios.php" class="btn btn-secondary"><i class="fas fa-times"></i> Cancelar</a>
+                        <a href="usuarios.php" class="btn btn-secondary"><i class="fas fa-times"></i> Cancelar</a>
                     </div>
                 </form>
             </div>
@@ -126,5 +153,4 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <script src="assets/js/script.js"></script>
 </body>
-</html>
-<?php $conn->close(); ?> 
+</html> 
