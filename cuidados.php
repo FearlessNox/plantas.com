@@ -10,8 +10,7 @@ if ($conn->connect_error) {
     die("Erro na conexão: " . $conn->connect_error);
 }
 
-// Gerar token CSRF para o formulário
-$csrf_token = generate_csrf_token();
+// Iniciar processamento do formulário
 
 // Processar formulário
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -211,7 +210,7 @@ $result = $conn->query($sql);
             </div>
             <div class="modal-body">
                 <form id="formEditar" method="POST" class="form">
-                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
+                    
                     <input type="hidden" name="id" id="edit_id">
                     
                     <div class="form-row">
@@ -437,7 +436,7 @@ $result = $conn->query($sql);
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
                 },
-                body: `id=${id}&csrf_token=${document.querySelector('input[name="csrf_token"]').value}`,
+                body: `id=${id}`,
                 credentials: 'same-origin'
             })
             .then(response => response.json())
@@ -458,4 +457,4 @@ $result = $conn->query($sql);
     </script>
 </body>
 </html>
-<?php $conn->close(); ?> 
+<?php $conn->close(); ?>

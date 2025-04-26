@@ -10,9 +10,6 @@ if ($conn->connect_error) {
     die("Erro na conexão: " . $conn->connect_error);
 }
 
-// Gerar token CSRF para o formulário
-$csrf_token = generate_csrf_token();
-
 // Processar formulário
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $nome = $_POST['nome'];
@@ -76,7 +73,6 @@ $result = $conn->query($sql);
                     <button class="btn-close" id="closeUsuarioForm"><i class="fas fa-times"></i></button>
                 </div>
                 <form id="usuarioForm" class="form" method="POST" action="usuarios.php">
-                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
                     <div class="form-group">
                         <label for="nome">Nome Completo:</label>
                         <input type="text" id="nome" name="nome" required>
@@ -165,7 +161,6 @@ $result = $conn->query($sql);
             </div>
             <div class="modal-body">
                 <form id="formEditar" method="POST" class="form">
-                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
                     <input type="hidden" name="id" id="edit_id">
                     
                     <div class="form-group">
@@ -298,13 +293,42 @@ $result = $conn->query($sql);
 
     // Função para excluir usuário
     function excluirUsuario(id) {
+        if (!confirm('Tem certeza que deseja excluir este usuário?')) {
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('id', id);
+        fetch('excluir_usuario.php', {
+            method: 'POST',
+            body: formData,
+            credentials: 'same-origin'
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                mostrarNotificacao('Usuário excluído com sucesso!', 'success');
+                setTimeout(() => window.location.reload(), 1000);
+            } else {
+                throw new Error(data.message || 'Erro ao excluir usuário');
+            }
+        })
+        .catch(error => {
+            console.error('Erro:', error);
+            mostrarNotificacao(error.message);
+        });
         if (confirm('Tem certeza que deseja excluir este usuário?')) {
             fetch('excluir_usuario.php', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
                 },
-                body: `id=${id}&csrf_token=${document.querySelector('input[name="csrf_token"]').value}`,
+                body: `id=${id}`,
                 credentials: 'same-origin'
             })
             .then(response => response.json())
@@ -325,4 +349,4 @@ $result = $conn->query($sql);
     </script>
 </body>
 </html>
-<?php $conn->close(); ?> 
+<?php $conn->close(); ?>

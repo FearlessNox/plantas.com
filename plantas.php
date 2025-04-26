@@ -1,8 +1,19 @@
 <?php
-require_once 'config/database.php';
+require_once 'config/db_config.php';  // Corrigido de database.php para db_config.php
+require_once 'config/security.php';
 
-// Conexão com o banco
-$conn = new mysqli($db_host, $db_user, $db_pass, $db_name);
+// Conexão com o banco usando PDO para maior segurança
+try {
+    $dsn = "mysql:host=$db_host;dbname=$db_name;charset=utf8mb4";
+    $options = [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        PDO::ATTR_EMULATE_PREPARES => false,
+    ];
+    $pdo = new PDO($dsn, $db_user, $db_pass, $options);
+} catch (PDOException $e) {
+    die("Erro na conexão: " . htmlspecialchars($e->getMessage()));
+}
 
 if ($conn->connect_error) {
     die("Erro na conexão: " . $conn->connect_error);
@@ -115,7 +126,6 @@ $result = $conn->query($sql);
                             <button class="btn-close" id="closePlantaForm"><i class="fas fa-times"></i></button>
                         </div>
                         <form id="plantaForm" class="form" method="POST" action="plantas.php">
-                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
                             <div class="form-group">
                                 <label for="nome_cientifico">Nome Científico:</label>
                                 <input type="text" id="nome_cientifico" name="nome_cientifico" required>
@@ -167,8 +177,8 @@ $result = $conn->query($sql);
                                 </tr>
                             </thead>
                             <tbody>
-                                <?php if (count($result) > 0): ?>
-                                    <?php foreach ($result as $row): ?>
+                                <?php if ($result->num_rows > 0): ?>
+                                    <?php while($row = $result->fetch_assoc()): ?>
                                         <tr>
                                             <td><?php echo htmlspecialchars($row['id']); ?></td>
                                             <td><?php echo htmlspecialchars($row['nome_popular']); ?></td>
@@ -185,7 +195,7 @@ $result = $conn->query($sql);
                                                 </button>
                                             </td>
                                         </tr>
-                                    <?php endforeach; ?>
+                                    <?php endwhile; ?>
                                 <?php else: ?>
                                     <tr>
                                         <td colspan="7" class="empty-table">Nenhuma planta cadastrada</td>
@@ -250,7 +260,6 @@ $result = $conn->query($sql);
             </div>
             <div class="modal-body">
                 <form id="formEditar" method="POST" class="form">
-                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(generate_csrf_token()); ?>">
                     <input type="hidden" name="id" id="edit_id">
                     
                     <div class="form-group">
@@ -404,10 +413,13 @@ $result = $conn->query($sql);
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
                 },
-                body: `id=${id}&csrf_token=${document.querySelector('input[name="csrf_token"]').value}`,
+                body: `id=${id}`,
                 credentials: 'same-origin'
             })
-            .then(response => response.json())
+            .then(response => {
+
+                return response.json();
+            })
             .then(data => {
                 if (data.success) {
                     mostrarNotificacao('Planta excluída com sucesso!', 'success');
@@ -418,11 +430,13 @@ $result = $conn->query($sql);
             })
             .catch(error => {
                 console.error('Erro:', error);
-                mostrarNotificacao(error.message);
+                mostrarNotificacao(error.message, 'error');
             });
         }
     }
     </script>
 </body>
 </html>
-<?php $conn->close(); ?> 
+<?php 
+// Removida a linha $conn->close(); pois não é necessária com PDO
+?>

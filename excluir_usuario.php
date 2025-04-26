@@ -10,11 +10,6 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-// Validar token CSRF
-if (!isset($_POST['csrf_token']) || !validate_csrf_token($_POST['csrf_token'])) {
-    echo json_encode(['success' => false, 'message' => 'Token CSRF inválido']);
-    exit;
-}
 
 $id = isset($_POST['id']) ? (int)$_POST['id'] : 0;
 
@@ -49,4 +44,4 @@ try {
 } catch (PDOException $e) {
     echo json_encode(['success' => false, 'message' => 'Erro ao excluir usuário']);
 }
-?> 
+?>

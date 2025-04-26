@@ -14,18 +14,34 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-// Validar token CSRF
-if (!isset($_POST['csrf_token']) || !validate_csrf_token($_POST['csrf_token'])) {
-    echo json_encode(['success' => false, 'message' => 'Token CSRF inválido']);
-    exit;
-}
+
 
 // Validar dados recebidos
 $id = isset($_POST['id']) ? (int)$_POST['id'] : 0;
+
+// Verificar se o ID é válido
+if ($id <= 0) {
+    echo json_encode(['success' => false, 'message' => 'ID do usuário inválido']);
+    exit;
+}
+
+// Verificar campos obrigatórios
+if (!isset($_POST['nome']) || !isset($_POST['email']) || 
+    !isset($_POST['nivel_experiencia'])) {
+    echo json_encode(['success' => false, 'message' => 'Nome, email e nível de experiência são obrigatórios']);
+    exit;
+}
+
 $nome = sanitize_input($_POST['nome']);
 $email = filter_var($_POST['email'], FILTER_SANITIZE_EMAIL);
-$telefone = sanitize_input($_POST['telefone']);
+$telefone = isset($_POST['telefone']) ? sanitize_input($_POST['telefone']) : '';
 $nivel_experiencia = sanitize_input($_POST['nivel_experiencia']);
+
+// Validar campos vazios após sanitização
+if (empty($nome) || empty($email)) {
+    echo json_encode(['success' => false, 'message' => 'Nome e email não podem estar vazios']);
+    exit;
+}
 
 // Validar email
 if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
@@ -48,6 +64,22 @@ try {
         PDO::ATTR_EMULATE_PREPARES => false,
     ];
     $pdo = new PDO($dsn, $db_user, $db_pass, $options);
+
+    // Verificar se o usuário existe
+    $stmt = $pdo->prepare("SELECT id FROM usuarios WHERE id = ?");
+    $stmt->execute([$id]);
+    if (!$stmt->fetch()) {
+        echo json_encode(['success' => false, 'message' => 'Usuário não encontrado']);
+        exit;
+    }
+
+    // Verificar se o email já está em uso por outro usuário
+    $stmt = $pdo->prepare("SELECT id FROM usuarios WHERE email = ? AND id != ?");
+    $stmt->execute([$email, $id]);
+    if ($stmt->fetch()) {
+        echo json_encode(['success' => false, 'message' => 'Este email já está em uso por outro usuário']);
+        exit;
+    }
 
     $sql = "UPDATE usuarios SET 
             nome = ?, 
@@ -73,4 +105,4 @@ try {
 } catch (PDOException $e) {
     echo json_encode(['success' => false, 'message' => 'Erro ao atualizar usuário']);
 }
-?> 
+?>

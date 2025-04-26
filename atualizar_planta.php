@@ -14,14 +14,25 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-// Validar token CSRF
-if (!isset($_POST['csrf_token']) || !validate_csrf_token($_POST['csrf_token'])) {
-    echo json_encode(['success' => false, 'message' => 'Token CSRF inválido']);
-    exit;
-}
+
 
 // Validar dados recebidos
 $id = isset($_POST['id']) ? (int)$_POST['id'] : 0;
+
+// Verificar se o ID é válido
+if ($id <= 0) {
+    echo json_encode(['success' => false, 'message' => 'ID da planta inválido']);
+    exit;
+}
+
+// Verificar campos obrigatórios
+if (!isset($_POST['nome_cientifico']) || !isset($_POST['nome_popular']) || 
+    !isset($_POST['tipo_planta']) || !isset($_POST['nivel_luz']) || 
+    !isset($_POST['frequencia_rega'])) {
+    echo json_encode(['success' => false, 'message' => 'Todos os campos são obrigatórios']);
+    exit;
+}
+
 $nome_cientifico = sanitize_input($_POST['nome_cientifico']);
 $nome_popular = sanitize_input($_POST['nome_popular']);
 $tipo_planta = sanitize_input($_POST['tipo_planta']);
@@ -30,9 +41,15 @@ $frequencia_rega = filter_var($_POST['frequencia_rega'], FILTER_VALIDATE_INT, [
     "options" => ["min_range" => 1, "max_range" => 30]
 ]);
 
+// Validar campos vazios após sanitização
+if (empty($nome_cientifico) || empty($nome_popular)) {
+    echo json_encode(['success' => false, 'message' => 'Nome científico e nome popular não podem estar vazios']);
+    exit;
+}
+
 // Validações
 if ($frequencia_rega === false) {
-    echo json_encode(['success' => false, 'message' => 'Frequência de rega inválida']);
+    echo json_encode(['success' => false, 'message' => 'Frequência de rega deve ser entre 1 e 30 dias']);
     exit;
 }
 
@@ -58,6 +75,14 @@ try {
         PDO::ATTR_EMULATE_PREPARES => false,
     ];
     $pdo = new PDO($dsn, $db_user, $db_pass, $options);
+    
+    // Verificar se a planta existe
+    $stmt = $pdo->prepare("SELECT id FROM plantas WHERE id = ?");
+    $stmt->execute([$id]);
+    if (!$stmt->fetch()) {
+        echo json_encode(['success' => false, 'message' => 'Planta não encontrada']);
+        exit;
+    }
 
     $sql = "UPDATE plantas SET 
             nome_cientifico = ?, 
@@ -85,4 +110,4 @@ try {
 } catch (PDOException $e) {
     echo json_encode(['success' => false, 'message' => 'Erro ao atualizar planta']);
 }
-?> 
+?>

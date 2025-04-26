@@ -34,9 +34,9 @@ try {
 
 // Processar formulário
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Validar token CSRF
-    if (!isset($_POST['csrf_token']) || !validate_csrf_token($_POST['csrf_token'])) {
-        die('Token CSRF inválido');
+    // Validar dados do formulário
+    if (!isset($_POST['id'])) {
+        die('ID não fornecido');
     }
 
     // Sanitizar e validar entradas
@@ -82,8 +82,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Gerar novo token CSRF para o formulário
-$csrf_token = generate_csrf_token();
+// Preparar dados para o formulário
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -121,7 +120,7 @@ $csrf_token = generate_csrf_token();
             
             <div class="card-form">
                 <form method="POST" action="editar_planta.php?id=<?php echo $id; ?>" class="form">
-                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
+
                     <div class="form-group">
                         <label for="nome_cientifico">Nome Científico:</label>
                         <input type="text" id="nome_cientifico" name="nome_cientifico" value="<?php echo htmlspecialchars($planta['nome_cientifico']); ?>" required>
@@ -169,4 +168,4 @@ $csrf_token = generate_csrf_token();
 
     <script src="assets/js/script.js"></script>
 </body>
-</html> 
+</html>
