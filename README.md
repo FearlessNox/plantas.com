@@ -27,8 +27,6 @@ Comparando com trabalhos anteriores, dá pra ver progresso. **Acreditamos que is
 ---
 
 ### 5. A nota é importante pra nós 🎯  
-NECESSITAMOS DA NOTA. **Precisamos da nota para não reprovar pois não queremos trabalhar em uma calltech no futuro**
+NECESSITAMOS DA NOTA. **Precisamos da nota para não reprovar, pois não queremos trabalhar em uma calltech no futuro**
 
 ---
-
-Obrigado pela atenção e pela oportunidade de aprender! 🙌
