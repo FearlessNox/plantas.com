@@ -1,6 +1,6 @@
 <?php
 require_once 'config/database.php';
-
+//PORQUE NOTA 6 PATRICK?? FIZEMOS TUDO CERTO 
 // Conexão com o banco
 $conn = new mysqli($db_host, $db_user, $db_pass, $db_name);
 
@@ -214,3 +214,4 @@ $result_debug = $conn->query($sql_debug);
 </body>
 </html>
 <?php $conn->close(); ?>
+
